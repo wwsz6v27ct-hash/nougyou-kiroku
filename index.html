@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#245b45">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="農業班記録">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>農業班記録ノート</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;color:#202923;background:#f4f6f3}
+*{box-sizing:border-box}body{margin:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{background:#245b45;color:white;padding:18px 18px 16px;position:sticky;top:0;z-index:2}
+header h1{font-size:19px;margin:0 0 4px}header p{font-size:12px;margin:0;opacity:.85}
+main{max-width:720px;margin:auto;padding:14px 14px 90px}
+.tabs{display:flex;gap:6px;background:#e7ece7;padding:5px;border-radius:12px;margin-bottom:14px}
+.tabs button{flex:1;background:transparent;color:#435148;padding:10px 4px;font-size:13px}
+.tabs button.active{background:white;color:#245b45;box-shadow:0 1px 4px #0001}
+.panel{display:none}.panel.active{display:block}
+.card{background:white;border:1px solid #e1e7e1;border-radius:15px;padding:15px;margin-bottom:12px;box-shadow:0 2px 8px #172b1b08}
+h2{font-size:16px;margin:0 0 12px}h3{font-size:14px;margin:0 0 8px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 6px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:12px;border:1px solid #ccd6cd;border-radius:10px;background:#fff;color:#202923}
+textarea{min-height:130px;resize:vertical;line-height:1.6}
+button{font:inherit;border:0;border-radius:10px;padding:12px 14px;background:#245b45;color:white;font-weight:600;font-size:14px;cursor:pointer}
+button.secondary{background:#edf2ee;color:#245b45}button.danger{background:#fff0ef;color:#a3332b}
+button.small{padding:8px 10px;font-size:12px}
+button:disabled{opacity:.45}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}
+.datebox{font-size:20px;font-weight:700;color:#245b45}.muted{color:#66736a;font-size:12px}
+.actions{display:flex;gap:8px;margin-top:12px}.actions button{flex:1}
+.item{border-top:1px solid #edf0ed;padding:12px 0}.item:first-child{border-top:0}
+.itemhead{display:flex;justify-content:space-between;gap:8px;align-items:center}.itemhead strong{font-size:14px}
+.item p{white-space:pre-wrap;line-height:1.55;margin:7px 0;font-size:14px}
+.tag{display:inline-block;background:#edf3ee;color:#376148;border-radius:20px;padding:4px 8px;font-size:11px}
+.empty{padding:22px;text-align:center;color:#778179;font-size:13px}
+.notice{font-size:12px;line-height:1.6;background:#f3f7f3;border-radius:10px;padding:10px;color:#526157}
+.hidden{display:none!important}
+footer{font-size:11px;color:#778179;text-align:center;padding:16px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#24382b;color:white;padding:11px 16px;border-radius:24px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10;max-width:90%;text-align:center}
+#toast.show{opacity:1}
+hr{border:0;border-top:1px solid #edf0ed;margin:14px 0}
+@media(min-width:600px){main{padding-top:22px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grid .card{margin:0}}
+</style>
+</head>
+<body>
+<header><h1>農業班記録ノート</h1><p>利用者別の作業・様子を日々記録</p></header>
+<main>
+<div class="tabs">
+<button class="active" data-tab="record">記録する</button>
+<button data-tab="list">記録一覧</button>
+<button data-tab="monthly">月次出力</button>
+<button data-tab="settings">利用者管理</button>
+</div>
+
+<section id="record" class="panel active">
+ <div class="card">
+  <div class="muted">本日の日付（自動取得）</div>
+  <div class="datebox" id="today"></div>
+  <div class="muted" id="clock"></div>
+ </div>
+ <div class="card">
+  <h2>新しい記録</h2>
+  <label for="recordUser">利用者</label><select id="recordUser"></select>
+  <label for="recordText">作業内容・本人の様子</label>
+  <textarea id="recordText" placeholder="例：散水、除草、堆肥の切り返し。除草は集中して取り組めていた。"></textarea>
+  <div class="notice">音声で入力する場合は、入力欄をタップしてiPhoneキーボードのマイクを押してください。入力日・時刻は保存時に自動記録します。</div>
+  <div class="actions"><button id="saveRecord">記録を保存</button><button class="secondary" id="clearText">入力を消去</button></div>
+  <input type="hidden" id="editingId">
+ </div>
+ <div class="card"><h3>今日の記録</h3><div id="todayRecords"></div></div>
+</section>
+
+<section id="list" class="panel">
+ <div class="card">
+  <h2>記録一覧</h2>
+  <div class="row">
+   <div><label for="filterUser">利用者</label><select id="filterUser"></select></div>
+   <div><label for="filterMonth">年月</label><input type="month" id="filterMonth"></div>
+  </div>
+  <div id="recordList"></div>
+ </div>
+</section>
+
+<section id="monthly" class="panel">
+ <div class="card">
+  <h2>月次記録の作成</h2>
+  <label for="monthUser">利用者</label><select id="monthUser"></select>
+  <label for="monthSelect">対象年月</label><input type="month" id="monthSelect">
+  <div class="actions"><button id="makeMonthly">整理用文章を作成</button></div>
+  <label for="monthlyOutput">出力内容</label>
+  <textarea id="monthlyOutput" placeholder="「整理用文章を作成」を押すと、日付別の原文がここに表示されます。" style="min-height:220px"></textarea>
+  <div class="actions"><button class="secondary" id="copyMonthly">文章をコピー</button><button class="secondary" id="downloadTxt">TXT保存</button></div>
+  <div class="notice">ここで作成するのは、ChatGPTに貼り付けるための原文と整理指示です。AIによる要約は、内容を確認しながらChatGPT上で行ってください。</div>
+ </div>
+</section>
+
+<section id="settings" class="panel">
+ <div class="card">
+  <h2>利用者の登録・編集</h2>
+  <label for="newUserName">利用者名</label><input id="newUserName" maxlength="40" placeholder="例：利用者A">
+  <input type="hidden" id="editUserId">
+  <div class="actions"><button id="addUser">利用者を登録</button><button class="secondary" id="cancelUserEdit">取消</button></div>
+  <div id="userList"></div>
+ </div>
+ <div class="card">
+  <h2>データのバックアップ</h2>
+  <p class="muted">記録と利用者情報をJSON形式で保存します。定期的にバックアップしてください。</p>
+  <div class="actions"><button id="backupJson">JSONバックアップ</button><button class="secondary" id="exportCsv">CSV出力</button></div>
+  <label for="restoreFile">JSONバックアップから復元</label><input type="file" id="restoreFile" accept=".json,application/json">
+  <div class="notice">復元すると現在のデータに追加せず、バックアップ内容で置き換えます。実行前に現在のデータもバックアップしてください。</div>
+ </div>
+ <div class="card">
+  <h2>データについて</h2>
+  <p class="muted">データはこのiPhoneのブラウザ内に保存されます。Safariの履歴・Webサイトデータを消去すると失われる場合があります。ホーム画面に追加して使用し、定期的にJSONバックアップを保存してください。</p>
+ </div>
+</section>
+<footer>農業班記録ノート・試作版 / データは端末内保存</footer>
+</main>
+<div id="toast"></div>
+<script>
+const DB_NAME='nougyou-record-db', DB_VERSION=1;
+let db;
+const $=id=>document.getElementById(id);
+function localDate(d=new Date()){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`}
+function localMonth(){return localDate().slice(0,7)}
+function fmtDate(s){const [y,m,d]=s.split('-');return `${Number(m)}月${Number(d)}日`}
+function nowText(){return new Date().toLocaleString('ja-JP',{hour12:false})}
+function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2300)}
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('users'))d.createObjectStore('users',{keyPath:'id'});if(!d.objectStoreNames.contains('records')){const s=d.createObjectStore('records',{keyPath:'id'});s.createIndex('date','date');s.createIndex('userId','userId')}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function all(store){return new Promise((resolve,reject)=>{const r=db.transaction(store).objectStore(store).getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function put(store,obj){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(obj);tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)})}
+function del(store,id){return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+function uid(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7)}
+async function refresh(){
+ const users=(await all('users')).sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+ const opts=users.map(u=>`<option value="${esc(u.id)}">${esc(u.name)}</option>`).join('');
+ ['recordUser','filterUser','monthUser'].forEach(id=>{const el=$(id),old=el.value;el.innerHTML=(id==='filterUser'?'<option value="all">すべて</option>':'<option value="">選択してください</option>')+opts;if([...el.options].some(o=>o.value===old))el.value=old});
+ renderUsers(users);await renderToday();await renderList();
+}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function renderUsers(users){$('userList').innerHTML=users.length?users.map(u=>`<div class="item"><div class="itemhead"><strong>${esc(u.name)}</strong><div><button class="secondary small" data-edit-user="${esc(u.id)}">編集</button> <button class="danger small" data-delete-user="${esc(u.id)}">削除</button></div></div></div>`).join(''):'<div class="empty">利用者はまだ登録されていません。</div>'}
+async function renderToday(){const today=localDate();const rs=(await all('records')).filter(r=>r.date===today).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));const us=await all('users');const names=Object.fromEntries(us.map(u=>[u.id,u.name]));$('todayRecords').innerHTML=rs.length?rs.map(r=>`<div class="item"><div class="itemhead"><strong>${esc(names[r.userId]||'登録外の利用者')}</strong><span class="muted">${esc(r.time)}</span></div><p>${esc(r.text)}</p><button class="secondary small" data-edit-record="${esc(r.id)}">編集</button></div>`).join(''):'<div class="empty">今日の記録はまだありません。</div>'}
+async function renderList(){const month=$('filterMonth').value||localMonth(),uid=$('filterUser').value||'all';const us=await all('users'),names=Object.fromEntries(us.map(u=>[u.id,u.name]));const rs=(await all('records')).filter(r=>r.date.startsWith(month)&&(uid==='all'||r.userId===uid)).sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt.localeCompare(a.createdAt));$('recordList').innerHTML=rs.length?rs.map(r=>`<div class="item"><div class="itemhead"><strong>${esc(fmtDate(r.date))}・${esc(names[r.userId]||'登録外')}</strong><span class="muted">${esc(r.time)}</span></div><p>${esc(r.text)}</p><div class="row"><button class="secondary small" data-edit-record="${esc(r.id)}">編集</button><button class="danger small" data-delete-record="${esc(r.id)}">削除</button></div></div>`).join(''):'<div class="empty">該当する記録はありません。</div>'}
+async function saveRecord(){const userId=$('recordUser').value,text=$('recordText').value.trim(),editing=$('editingId').value;if(!userId){toast('先に利用者を登録・選択してください');return}if(!text){toast('記録内容を入力してください');return}const d=new Date(),date=localDate(d),time=d.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false});let obj={id:editing||uid('rec'),userId,date,time,createdAt:d.toISOString(),text};if(editing){const old=(await all('records')).find(r=>r.id===editing);if(old){obj.date=old.date;obj.time=old.time;obj.createdAt=old.createdAt}}await put('records',obj);$('recordText').value='';$('editingId').value='';$('saveRecord').textContent='記録を保存';toast(editing?'記録を更新しました':'記録を保存しました');await refresh()}
+async function editRecord(id){const r=(await all('records')).find(x=>x.id===id);if(!r)return;$('recordUser').value=r.userId;$('recordText').value=r.text;$('editingId').value=r.id;$('saveRecord').textContent='変更を保存';document.querySelector('[data-tab="record"]').click();window.scrollTo({top:0,behavior:'smooth'})}
+async function deleteRecord(id){if(!confirm('この記録を削除しますか？'))return;await del('records',id);toast('削除しました');await refresh()}
+async function editUser(id){const u=(await all('users')).find(x=>x.id===id);if(!u)return;$('newUserName').value=u.name;$('editUserId').value=id;$('addUser').textContent='変更を保存';$('newUserName').focus()}
+async function saveUser(){const name=$('newUserName').value.trim(),id=$('editUserId').value;if(!name){toast('利用者名を入力してください');return}const users=await all('users');if(users.some(u=>u.name===name&&u.id!==id)){toast('同じ名前の利用者が登録されています');return}await put('users',{id:id||uid('usr'),name});$('newUserName').value='';$('editUserId').value='';$('addUser').textContent='利用者を登録';toast(id?'利用者名を変更しました':'利用者を登録しました');await refresh()}
+async function deleteUser(id){const rs=(await all('records')).filter(r=>r.userId===id);if(rs.length){alert('この利用者には記録が残っています。記録を削除または別途バックアップしてから利用者を削除してください。記録保全のため、記録がある利用者は削除できません。');return}if(!confirm('この利用者を削除しますか？'))return;await del('users',id);toast('利用者を削除しました');await refresh()}
+function download(name,content,type){const blob=new Blob([content],{type});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+async function monthly(){const userId=$('monthUser').value,month=$('monthSelect').value;if(!userId||!month){toast('利用者と年月を選択してください');return}const users=await all('users'),u=users.find(x=>x.id===userId);const rs=(await all('records')).filter(r=>r.userId===userId&&r.date.startsWith(month)).sort((a,b)=>a.date.localeCompare(b.date)||a.createdAt.localeCompare(b.createdAt));if(!rs.length){$('monthlyOutput').value='該当する記録はありません。';return}let groups={};rs.forEach(r=>(groups[r.date]??=[]).push(r.text));let out=`以下は「${u.name}」の${month}の記録です。\n次の条件で整理してください。\n・日付ごとに内容をまとめる\n・日付ごとに「・」で箇条書きにする\n・同種の作業内容は統一する\n・様子を記した文章は意味を保ち約30文字程度に簡潔化する\n・体調不良、欠勤、重要事項は省略しない\n・原文にない事実を補わない\n・重複記録は統合する\n\n【記録原文】\n`;for(const date of Object.keys(groups)){out+=`\n${fmtDate(date)}\n`;groups[date].forEach(t=>out+=`・${t.replace(/\n/g,' ')}\n`)}$('monthlyOutput').value=out;toast(`${rs.length}件の記録をまとめました`)}
+async function backup(){const data={app:'農業班記録ノート',version:1,exportedAt:new Date().toISOString(),users:await all('users'),records:await all('records')};download(`農業班記録バックアップ_${localDate()}.json`,JSON.stringify(data,null,2),'application/json')}
+async function csv(){const users=await all('users'),rs=await all('records'),names=Object.fromEntries(users.map(u=>[u.id,u.name]));const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const rows=[['利用者','記録日','入力時刻','記録内容'],...rs.sort((a,b)=>a.date.localeCompare(b.date)).map(r=>[names[r.userId]||'',r.date,r.time,r.text])];download(`農業班記録_${localDate()}.csv`,'\ufeff'+rows.map(row=>row.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8')}
+async function restore(file){if(!file)return;try{const data=JSON.parse(await file.text());if(!Array.isArray(data.users)||!Array.isArray(data.records))throw Error('形式が違います');if(!confirm('現在の利用者・記録をすべて置き換えて復元します。よろしいですか？'))return;const tx=db.transaction(['users','records'],'readwrite');tx.objectStore('users').clear();tx.objectStore('records').clear();data.users.forEach(x=>tx.objectStore('users').put(x));data.records.forEach(x=>tx.objectStore('records').put(x));tx.oncomplete=async()=>{toast('バックアップを復元しました');await refresh()};tx.onerror=()=>toast('復元に失敗しました')}catch(e){alert('バックアップファイルを読み込めませんでした。JSON形式を確認してください。')}}
+document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.panel').forEach(x=>x.classList.toggle('active',x.id===b.dataset.tab));if(b.dataset.tab==='list')renderList()}));
+$('saveRecord').onclick=saveRecord;$('clearText').onclick=()=>{$('recordText').value='';$('editingId').value='';$('saveRecord').textContent='記録を保存'};
+$('addUser').onclick=saveUser;$('cancelUserEdit').onclick=()=>{$('newUserName').value='';$('editUserId').value='';$('addUser').textContent='利用者を登録'};
+$('filterMonth').value=localMonth();$('monthSelect').value=localMonth();$('filterMonth').onchange=renderList;$('filterUser').onchange=renderList;$('makeMonthly').onclick=monthly;
+$('copyMonthly').onclick=async()=>{if(!$('monthlyOutput').value){toast('コピーする文章がありません');return}try{await navigator.clipboard.writeText($('monthlyOutput').value);toast('コピーしました')}catch(e){$('monthlyOutput').select();toast('文章を選択しました。コピーしてください')}};
+$('downloadTxt').onclick=()=>{if($('monthlyOutput').value)download('月次記録整理用.txt',$('monthlyOutput').value,'text/plain;charset=utf-8')};
+$('backupJson').onclick=backup;$('exportCsv').onclick=csv;$('restoreFile').onchange=e=>restore(e.target.files[0]);
+document.addEventListener('click',e=>{const t=e.target;if(t.dataset.editRecord)editRecord(t.dataset.editRecord);if(t.dataset.deleteRecord)deleteRecord(t.dataset.deleteRecord);if(t.dataset.editUser)editUser(t.dataset.editUser);if(t.dataset.deleteUser)deleteUser(t.dataset.deleteUser)});
+function tick(){$('today').textContent=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});$('clock').textContent='現在時刻 '+nowText()}
+(async()=>{try{db=await openDB();tick();setInterval(tick,30000);await refresh();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(e){alert('データベースを開始できませんでした。Safariで開き直してください。')}})();
+</script>
+</body></html>
